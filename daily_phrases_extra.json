@@ -1,0 +1,32 @@
+[
+  {
+    "context": "Compras",
+    "english": "Do you take credit cards?",
+    "when_to_use": "Confirmar forma de pagamento.",
+    "best_translation": "Vocês aceitam cartao de credito?"
+  },
+  {
+    "context": "Emergência",
+    "english": "Please stay with me.",
+    "when_to_use": "Pedido de apoio em situacao de emergencia.",
+    "best_translation": "Por favor, fique comigo."
+  },
+  {
+    "context": "Social",
+    "english": "Let's catch up soon.",
+    "when_to_use": "Para combinar de conversar ou encontrar em breve.",
+    "best_translation": "Vamos nos atualizar em breve."
+  },
+  {
+    "context": "Frases da internet",
+    "english": "Happiness is a journey, not a destination.",
+    "when_to_use": "Em conversas informais para compartilhar um conselho curto.",
+    "best_translation": "A felicidade é uma jornada, não um destino."
+  },
+  {
+    "context": "Frases da internet",
+    "english": "Remember that spiders are more afraid of you, than you are of them.",
+    "when_to_use": "Em conversas informais para compartilhar um conselho curto.",
+    "best_translation": "Lembre-se de que as aranhas têm mais medo de você do que você delas."
+  }
+]
