@@ -1912,6 +1912,25 @@ elif menu == "Podcast de Notícias 🎙️":
             except Exception:
                 return "Tradução indisponível no momento."
 
+        # --- Botão para traduzir episódio completo ---
+        col_traduzir_ep, _ = st.columns(2)
+        with col_traduzir_ep:
+            if st.button("🌍 Traduzir episódio completo para português"):
+                with st.spinner("Traduzindo episódio..."):
+                    traducao_completa = _traduzir_noticia_podcast(roteiro_completo)
+                    st.session_state.podcast_full_translation = traducao_completa
+                st.rerun()
+
+        if "podcast_full_translation" in st.session_state and st.session_state.podcast_full_translation:
+            with st.expander("📖 Ver episódio traduzido (Português)", expanded=True):
+                st.write(st.session_state.podcast_full_translation)
+                st.download_button(
+                    label="📥 Baixar tradução",
+                    data=st.session_state.podcast_full_translation,
+                    file_name="podcast_noticias_traduzido.txt",
+                    mime="text/plain",
+                )
+
         st.markdown("### Manchetes do episódio")
         for indice_noticia, item_noticia in enumerate(noticias_episodio, start=1):
             titulo_noticia = item_noticia.get("title", "")
@@ -1946,9 +1965,19 @@ elif menu == "Podcast de Notícias 🎙️":
                     st.markdown("**Português**")
                     st.success(st.session_state.podcast_translation_cache[chave_traducao_noticia])
 
-            if st.button("Ouvir esta manchete", key=f"ouvir_noticia_{indice_noticia}"):
-                audio_html = gerar_audio(texto_en_noticia, playback_rate=velocidade_podcast)
-                st.markdown(audio_html, unsafe_allow_html=True)
+            col_ouvir_noticia, col_traduzir_noticia = st.columns(2)
+            with col_ouvir_noticia:
+                if st.button("🎧 Ouvir esta manchete", key=f"ouvir_noticia_{indice_noticia}"):
+                    audio_html = gerar_audio(texto_en_noticia, playback_rate=velocidade_podcast)
+                    st.markdown(audio_html, unsafe_allow_html=True)
+            with col_traduzir_noticia:
+                if st.button("🌍 Traduzir esta notícia", key=f"traduzir_noticia_{indice_noticia}"):
+                    if chave_traducao_noticia not in st.session_state.podcast_translation_cache:
+                        st.session_state.podcast_translation_cache[chave_traducao_noticia] = _traduzir_noticia_podcast(
+                            texto_en_noticia
+                        )
+                    traducao = st.session_state.podcast_translation_cache[chave_traducao_noticia]
+                    st.success(f"**Tradução:** {traducao}")
 
             st.divider()
 
