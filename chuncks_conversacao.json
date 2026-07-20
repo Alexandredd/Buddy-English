@@ -1,0 +1,32 @@
+[
+  {
+    "id": "chunk_001",
+    "context": "Conversação Básica",
+    "content": "How are you doing today?",
+    "translation": "Como você está hoje?",
+    "when_to_use": "Cumprimento informal e amigável no dia a dia.",
+    "difficulty": "beginner",
+    "tags": [
+      "greeting",
+      "daily",
+      "informal"
+    ],
+    "examples": "How are you doing today? Pretty good, thanks!",
+    "created_at": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "chunk_002",
+    "context": "Conversação Básica",
+    "content": "What do you do for a living?",
+    "translation": "O que você faz para viver?",
+    "when_to_use": "Pergunta comum ao conhecer alguém em contexto social ou profissional.",
+    "difficulty": "beginner",
+    "tags": [
+      "introduction",
+      "work",
+      "social"
+    ],
+    "examples": "What do you do for a living? I'm a software engineer.",
+    "created_at": "2024-01-01T00:00:00Z"
+  }
+]
