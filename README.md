@@ -45,6 +45,8 @@ O Buddy-English é uma plataforma completa para treinar inglês com foco em **in
 ### 💬 Frases do Dia a Dia
 - Frases organizadas por **contexto** (Trabalho, Restaurante, Viagem, etc.)
 - Filtro por contexto e busca textual
+- **Contador de frases** exibindo o total de resultados encontrados
+- **Numeração automática** (1, 2, 3...) em cada frase listada
 - **Quiz interativo** (frente/verso/misto)
 - Sistema de **favoritos** para revisão
 - Importação/exportação em **JSON** e **CSV**
@@ -53,11 +55,13 @@ O Buddy-English é uma plataforma completa para treinar inglês com foco em **in
 - Atualização diária automática
 
 ### 🎙️ Podcast de Notícias
-- Manchetes atuais do mundo em inglês
-- Narração em áudio com controle de velocidade
-- Legendas em: **Inglês**, **Português** ou **Bilíngue**
-- Download do roteiro em texto
-- Cache inteligente de notícias
+- Manchetes atuais do mundo em inglês (BBC News, NPR World)
+- Narração em áudio com controle de velocidade (0.75x a 1.50x)
+- Legendas em: **Inglês**, **Português** ou **Bilíngue** (lado a lado)
+- **Tradução individual** de cada manchete para português com um clique
+- **Tradução do episódio completo** com exibição e download do texto traduzido
+- Download do roteiro original em texto
+- Cache inteligente de notícias com atualização periódica
 
 ### 📚 Chunks de Estudo
 - **8 chunks base** pré-carregados por contexto
