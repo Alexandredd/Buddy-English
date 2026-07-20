@@ -2228,3 +2228,7 @@ elif menu == "Chunks de Estudo 📚":
         st.markdown("#### 📚 Fila de Estudo (Spaced Repetition)")
         study_queue = ck.get_study_queue(limit=10)
         if study_queue:
+            for i, chunk in enumerate(study_queue, 1):
+                st.write(f"{i}. **{chunk['content']}** ({chunk.get('difficulty', 'N/A')})")
+        else:
+            st.info("Nenhum chunk na fila de estudo.")
