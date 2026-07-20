@@ -76,6 +76,17 @@ O Buddy-English é uma plataforma completa para treinar inglês com foco em **in
 - Insights personalizados de aprendizado
 - Cache online com 24h de validade
 
+### 📝 Vocabulário por Contexto
+- **Busca de palavras** por termo em inglês ou português
+- **Filtro por contexto** (Restaurante, Trabalho, Viagem, etc.)
+- **Exemplos bilíngues** (inglês + português) para cada palavra
+- **Notas de uso** para entender quando e como usar cada palavra
+- **Adição de novas palavras** com formulário completo
+- **Navegação por contexto** para estudar vocabulário temático
+- **Estatísticas** de vocabulário (total, contextos, exemplos)
+- **Geração de textos de exemplo** bilíngues por contexto
+- **Importação/exportação** de vocabulário em JSON
+
 ### 📝 Corretor Ortográfico
 - Correção de texto com **LanguageTool API**
 - Fallback local com mais de **50 regras** de correção
@@ -128,6 +139,7 @@ Buddy-English/
 ├── download_github.py              # Utilitário de download
 ├── news_podcast.py                 # Módulo de podcast de notícias
 ├── public_domain_texts.py          # Módulo de textos em domínio público
+├── vocabulary.py                   # Módulo de vocabulário por contexto
 ├── requirements.txt                # Dependências do projeto
 ├── .gitignore                      # Arquivos ignorados pelo Git
 │
@@ -138,7 +150,8 @@ Buddy-English/
 ├── daily_phrases_meta.json         # Metadados das frases
 ├── daily_phrases_online_cache.json # Cache de frases online
 ├── news_podcast_cache.json         # Cache de notícias
-└── reading_manual_texts.json       # Textos manuais salvos
+├── reading_manual_texts.json       # Textos manuais salvos
+└── vocabulary_data.json            # Dados do vocabulário
 ```
 
 ---
@@ -182,7 +195,7 @@ deep-translator>=1.11.0
 
 ## 📊 Estatísticas do Sistema
 
-- **8 módulos** de aprendizado integrados
+- **9 módulos** de aprendizado integrados
 - **50 verbos irregulares** com conjugação completa
 - **8 chunks base** pré-carregados
 - **Múltiplos contextos** de frases do dia a dia
@@ -190,6 +203,7 @@ deep-translator>=1.11.0
 - **Notícias atuais** do mundo em inglês
 - **50+ regras** de correção ortográfica local
 - **3 níveis** de refinamento com IA
+- **Sistema de vocabulário** com exemplos bilíngues por contexto
 
 ---
 
