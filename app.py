@@ -2361,7 +2361,7 @@ elif menu == "Vocabulário 📝":
                 # Opção de traduzir a palavra
                 if st.button("🌍 Traduzir palavra"):
                     try:
-                        traducao = traduzir_texto_google(search_query.strip(), origem="en", destino="pt")
+                        traducao = traduzir_texto(search_query.strip(), origem="en", destino="pt")
                         st.success(f"**Tradução:** {traducao}")
                     except Exception:
                         st.error("Não foi possível traduzir no momento.")
