@@ -2266,34 +2266,136 @@ elif menu == "Vocabulário 📝":
     
     with vocab_tab1:
         st.markdown("### Buscar Vocabulário")
+        st.caption("Busque palavras online ou no seu vocabulário salvo")
         
-        col_search, col_filter = st.columns([3, 1])
-        with col_search:
-            search_query = st.text_input("Buscar palavra ou tradução", placeholder="Ex.: hello, restaurant, order...")
-        with col_filter:
-            context_filter = st.selectbox("Contexto", ["Todos"] + vocab.list_contexts())
+        with st.form("form_buscar_vocabulario"):
+            col_search, col_filter = st.columns([3, 1])
+            with col_search:
+                search_query = st.text_input("Buscar palavra em inglês", placeholder="Ex.: hello, restaurant, order...")
+            with col_filter:
+                context_filter = st.selectbox("Contexto", ["Todos"] + vocab.list_contexts())
+            
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                submit_search = st.form_submit_button("🔍 Buscar Online", use_container_width=True)
+            with col_btn2:
+                search_local = st.form_submit_button("📚 Buscar Local", use_container_width=True)
         
-        if st.button("🔍 Buscar") or search_query:
-            if search_query.strip():
-                results = vocab.search_vocabulary(search_query, context=context_filter)
-                st.session_state.vocab_search_results = results
+        # Busca online (dicionário)
+        if submit_search and search_query.strip():
+            with st.spinner("Buscando na internet..."):
+                merriam_api_key = os.getenv("MERRIAM_WEBSTER_API_KEY", "")
+                online_result = buscar_dicionario_ingles(search_query.strip(), merriam_api_key=merriam_api_key)
+            
+            if online_result and online_result.get("found"):
+                st.success(f"Palavra encontrada: **{online_result.get('word', search_query)}**")
                 
-                if results:
-                    st.success(f"Encontrados {len(results)} resultado(s)")
-                    for item in results:
-                        with st.expander(f"📝 {item['word']} ({item['context']})"):
-                            st.write(f"**Tradução:** {item['translation']}")
-                            if item.get('notes'):
-                                st.write(f"**Notas:** {item['notes']}")
-                            if item.get('examples'):
-                                st.markdown("**Exemplos:**")
-                                for ex in item['examples']:
-                                    st.write(f"- 🇬🇧 {ex['english']}")
-                                    st.write(f"- 🇧🇷 {ex['portuguese']}")
-                else:
-                    st.info("Nenhum resultado encontrado.")
+                if online_result.get("phonetic"):
+                    st.caption(f"Pronúncia: {online_result['phonetic']}")
+                
+                if online_result.get("audio_url"):
+                    st.audio(online_result["audio_url"], format="audio/mp3")
+                
+                # Exibir significados
+                for meaning in online_result.get("meanings", []):
+                    st.write(f"**{meaning.get('part_of_speech', '-')}**")
+                    for i, definicao in enumerate(meaning.get("definitions", []), 1):
+                        st.write(f"{i}. {definicao.get('definition', '')}")
+                        if definicao.get("example"):
+                            st.caption(f"Exemplo: {definicao['example']}")
+                    
+                    sinonimos = meaning.get("synonyms", [])
+                    if sinonimos:
+                        st.caption("Sinônimos: " + ", ".join(sinonimos[:10]))
+                    st.divider()
+                
+                # Opção de traduzir e adicionar ao vocabulário
+                with st.expander("➕ Adicionar ao Vocabulário"):
+                    with st.form("form_add_online_word"):
+                        col_add1, col_add2 = st.columns(2)
+                        with col_add1:
+                            new_word = st.text_input("Palavra", value=online_result.get('word', search_query))
+                            new_context = st.text_input("Contexto", placeholder="Ex.: Restaurante, Trabalho")
+                        with col_add2:
+                            new_translation = st.text_input("Tradução", placeholder="Tradução em português")
+                            new_notes = st.text_area("Notas", placeholder="Notas de uso (opcional)", height=80)
+                        
+                        # Mostrar exemplos do dicionário
+                        st.markdown("**Exemplos do dicionário:**")
+                        example_options = []
+                        for meaning in online_result.get("meanings", []):
+                            for definicao in meaning.get("definitions", []):
+                                if definicao.get("example"):
+                                    example_options.append(definicao["example"])
+                        
+                        selected_examples = []
+                        if example_options:
+                            selected_examples = st.multiselect(
+                                "Selecione exemplos para adicionar",
+                                example_options,
+                                default=example_options[:2] if len(example_options) >= 2 else example_options
+                            )
+                        
+                        submit_add = st.form_submit_button("💾 Salvar no Vocabulário")
+                        
+                        if submit_add:
+                            if not new_word or not new_context or not new_translation:
+                                st.warning("Preencha pelo menos: Palavra, Contexto e Tradução.")
+                            else:
+                                examples = [{"english": ex, "portuguese": ""} for ex in selected_examples]
+                                
+                                result = vocab.add_vocabulary_item(
+                                    word=new_word,
+                                    context=new_context,
+                                    translation=new_translation,
+                                    examples=examples,
+                                    notes=new_notes
+                                )
+                                
+                                if result:
+                                    st.success(f"Palavra '{new_word}' adicionada com sucesso!")
+                                    st.rerun()
+                                else:
+                                    st.info(f"Esta palavra já existe no contexto '{new_context}'.")
+                
+                # Opção de traduzir a palavra
+                if st.button("🌍 Traduzir palavra"):
+                    try:
+                        traducao = traduzir_texto_google(search_query.strip(), origem="en", destino="pt")
+                        st.success(f"**Tradução:** {traducao}")
+                    except Exception:
+                        st.error("Não foi possível traduzir no momento.")
+            
+            elif online_result and not online_result.get("found"):
+                st.info(f"Palavra não encontrada: {search_query}")
+                if online_result.get("suggestions"):
+                    st.caption("Sugestões: " + ", ".join(online_result.get("suggestions", [])))
             else:
-                st.warning("Digite uma palavra ou frase para buscar.")
+                st.error("Não foi possível buscar no dicionário no momento. Tente novamente.")
+        
+        # Busca local (vocabulário salvo)
+        elif search_local and search_query.strip():
+            results = vocab.search_vocabulary(search_query, context=context_filter)
+            st.session_state.vocab_search_results = results
+            
+            if results:
+                st.success(f"Encontrados {len(results)} resultado(s) no vocabulário")
+                for item in results:
+                    with st.expander(f"📝 {item['word']} ({item['context']})"):
+                        st.write(f"**Tradução:** {item['translation']}")
+                        if item.get('notes'):
+                            st.write(f"**Notas:** {item['notes']}")
+                        if item.get('examples'):
+                            st.markdown("**Exemplos:**")
+                            for ex in item['examples']:
+                                st.write(f"- 🇬🇧 {ex['english']}")
+                                if ex.get('portuguese'):
+                                    st.write(f"- 🇧🇷 {ex['portuguese']}")
+            else:
+                st.info("Nenhum resultado encontrado no vocabulário local.")
+        
+        if submit_search and not search_query.strip():
+            st.warning("Digite uma palavra para buscar.")
     
     with vocab_tab2:
         st.markdown("### Adicionar Nova Palavra")
