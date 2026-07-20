@@ -1814,11 +1814,15 @@ elif menu == "Frases do dia a dia 💬":
     if not frases:
         st.info("Nenhuma frase encontrada para este contexto.")
     else:
+        total_frases = len(frases)
+        st.info(f"📊 Mostrando **{total_frases}** frase(s) encontrada(s)")
+        
         for indice, frase in enumerate(frases):
+            numero = indice + 1
             phrase_id = f"{frase['context']}::{frase['english']}"
             favorita = phrase_id in st.session_state.favorite_phrases
 
-            st.markdown(f"### {frase['english']}")
+            st.markdown(f"### {numero}. {frase['english']}")
             st.write(f"**Contexto:** {frase['context']}")
             st.write(f"**Quando usar:** {frase['when_to_use']}")
             st.write(f"**Melhor tradução:** {frase['best_translation']}")
@@ -2224,7 +2228,3 @@ elif menu == "Chunks de Estudo 📚":
         st.markdown("#### 📚 Fila de Estudo (Spaced Repetition)")
         study_queue = ck.get_study_queue(limit=10)
         if study_queue:
-            for i, chunk in enumerate(study_queue, 1):
-                st.write(f"{i}. **{chunk['content']}** ({chunk.get('difficulty', 'N/A')})")
-        else:
-            st.info("Nenhum chunk na fila de estudo.")
