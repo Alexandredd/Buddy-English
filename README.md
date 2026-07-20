@@ -221,6 +221,4 @@ Projeto de código aberto para fins educacionais.
 - [Merriam-Webster](https://dictionaryapi.com/) - Dicionário
 - [Free Dictionary API](https://dictionaryapi.dev/) - Dicionário público
 - [Tatoeba](https://tatoeba.org/) - Frases de exemplo
-- [Quotable](https://github.com/lukePeavey/quotable) - Citações
-- [Gutendex](https://gutendex.com/) - Textos do Projeto Gutenberg
-- [MyMemory](https://mymemory.translated.net/) - Tradução
+- [Quotable](https://github.com/lukePeavey/quotable) - Ci
