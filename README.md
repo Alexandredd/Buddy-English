@@ -45,6 +45,8 @@ O Buddy-English é uma plataforma completa para treinar inglês com foco em **in
 ### 💬 Frases do Dia a Dia
 - Frases organizadas por **contexto** (Trabalho, Restaurante, Viagem, etc.)
 - Filtro por contexto e busca textual
+- **Contador de frases** exibindo o total de resultados encontrados
+- **Numeração automática** (1, 2, 3...) em cada frase listada
 - **Quiz interativo** (frente/verso/misto)
 - Sistema de **favoritos** para revisão
 - Importação/exportação em **JSON** e **CSV**
@@ -219,6 +221,4 @@ Projeto de código aberto para fins educacionais.
 - [Merriam-Webster](https://dictionaryapi.com/) - Dicionário
 - [Free Dictionary API](https://dictionaryapi.dev/) - Dicionário público
 - [Tatoeba](https://tatoeba.org/) - Frases de exemplo
-- [Quotable](https://github.com/lukePeavey/quotable) - Citações
-- [Gutendex](https://gutendex.com/) - Textos do Projeto Gutenberg
-- [MyMemory](https://mymemory.translated.net/) - Tradução
+- [Quotable](https://github.com/lukePeavey/quotable) - Ci
