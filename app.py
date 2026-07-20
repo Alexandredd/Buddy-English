@@ -17,6 +17,7 @@ import daily_phrases as dp
 import public_domain_texts as pdt
 import news_podcast as npc
 import chuncks as ck
+import vocabulary as vocab
 
 try:
     _deep_translator = importlib.import_module("deep_translator")
@@ -279,7 +280,7 @@ if "chunks_initialized" not in st.session_state:
 # --- Menu lateral ---
 menu = st.sidebar.radio("Escolha uma habilidade:", [
     "Escuta 🎧", "Tradução 🌍", "Dicionário 🇺🇸", "Conjugação 🔄", "Leitura 📖", "Frases do dia a dia 💬",
-    "Podcast de Notícias 🎙️", "Chunks de Estudo 📚"
+    "Podcast de Notícias 🎙️", "Chunks de Estudo 📚", "Vocabulário 📝"
 ])
 
 # --- Função de correção ---
@@ -2232,3 +2233,172 @@ elif menu == "Chunks de Estudo 📚":
                 st.write(f"{i}. **{chunk['content']}** ({chunk.get('difficulty', 'N/A')})")
         else:
             st.info("Nenhum chunk na fila de estudo.")
+
+elif menu == "Vocabulário 📝":
+    st.subheader("Vocabulário por Contexto")
+    st.caption("Consulte, adicione e estude palavras organizadas por contexto com exemplos bilíngues")
+    
+    # Inicializa session state
+    if "vocab_search_results" not in st.session_state:
+        st.session_state.vocab_search_results = []
+    if "vocab_selected_context" not in st.session_state:
+        st.session_state.vocab_selected_context = "Todos"
+    
+    # Estatísticas
+    vocab_stats = vocab.get_vocabulary_stats()
+    col_v1, col_v2, col_v3 = st.columns(3)
+    with col_v1:
+        st.metric("Total de Palavras", vocab_stats.get('total_words', 0))
+    with col_v2:
+        st.metric("Contextos", len(vocab_stats.get('contexts', {})))
+    with col_v3:
+        st.metric("Exemplos", vocab_stats.get('total_examples', 0))
+    
+    st.divider()
+    
+    # Abas de funcionalidades
+    vocab_tab1, vocab_tab2, vocab_tab3, vocab_tab4 = st.tabs([
+        "🔍 Buscar",
+        "➕ Adicionar",
+        "📚 Por Contexto",
+        "📊 Estatísticas"
+    ])
+    
+    with vocab_tab1:
+        st.markdown("### Buscar Vocabulário")
+        
+        col_search, col_filter = st.columns([3, 1])
+        with col_search:
+            search_query = st.text_input("Buscar palavra ou tradução", placeholder="Ex.: hello, restaurant, order...")
+        with col_filter:
+            context_filter = st.selectbox("Contexto", ["Todos"] + vocab.list_contexts())
+        
+        if st.button("🔍 Buscar") or search_query:
+            if search_query.strip():
+                results = vocab.search_vocabulary(search_query, context=context_filter)
+                st.session_state.vocab_search_results = results
+                
+                if results:
+                    st.success(f"Encontrados {len(results)} resultado(s)")
+                    for item in results:
+                        with st.expander(f"📝 {item['word']} ({item['context']})"):
+                            st.write(f"**Tradução:** {item['translation']}")
+                            if item.get('notes'):
+                                st.write(f"**Notas:** {item['notes']}")
+                            if item.get('examples'):
+                                st.markdown("**Exemplos:**")
+                                for ex in item['examples']:
+                                    st.write(f"- 🇬🇧 {ex['english']}")
+                                    st.write(f"- 🇧🇷 {ex['portuguese']}")
+                else:
+                    st.info("Nenhum resultado encontrado.")
+            else:
+                st.warning("Digite uma palavra ou frase para buscar.")
+    
+    with vocab_tab2:
+        st.markdown("### Adicionar Nova Palavra")
+        
+        with st.form("form_nova_palavra"):
+            col_w1, col_w2 = st.columns(2)
+            with col_w1:
+                new_word = st.text_input("Palavra/Expressão (Inglês)", placeholder="Ex.: to order")
+                new_context = st.text_input("Contexto", placeholder="Ex.: Restaurante")
+            with col_w2:
+                new_translation = st.text_input("Tradução (Português)", placeholder="Ex.: pedir")
+                new_notes = st.text_input("Notas (opcional)", placeholder="Ex.: Usado para pedir comida")
+            
+            st.markdown("**Exemplos de uso (mínimo 1):**")
+            col_ex1, col_ex2 = st.columns(2)
+            with col_ex1:
+                ex1_english = st.text_input("Exemplo 1 (Inglês)", placeholder="I'd like to order...")
+                ex2_english = st.text_input("Exemplo 2 (Inglês - opcional)", placeholder="Can I order...")
+            with col_ex2:
+                ex1_portuguese = st.text_input("Exemplo 1 (Português)", placeholder="Eu gostaria de pedir...")
+                ex2_portuguese = st.text_input("Exemplo 2 (Português - opcional)", placeholder="Posso pedir...")
+            
+            submit_vocab = st.form_submit_button("💾 Salvar Palavra")
+            
+            if submit_vocab:
+                if not new_word or not new_context or not new_translation:
+                    st.warning("Preencha pelo menos: Palavra, Contexto e Tradução.")
+                else:
+                    examples = []
+                    if ex1_english and ex1_portuguese:
+                        examples.append({"english": ex1_english, "portuguese": ex1_portuguese})
+                    if ex2_english and ex2_portuguese:
+                        examples.append({"english": ex2_english, "portuguese": ex2_portuguese})
+                    
+                    result = vocab.add_vocabulary_item(
+                        word=new_word,
+                        context=new_context,
+                        translation=new_translation,
+                        examples=examples,
+                        notes=new_notes
+                    )
+                    
+                    if result:
+                        st.success(f"Palavra '{new_word}' adicionada com sucesso!")
+                        st.rerun()
+                    else:
+                        st.info(f"Esta palavra já existe no contexto '{new_context}'.")
+    
+    with vocab_tab3:
+        st.markdown("### Vocabulário por Contexto")
+        
+        if vocab.list_contexts():
+            selected_context = st.selectbox("Selecione um contexto", ["Todos"] + vocab.list_contexts())
+            
+            if selected_context == "Todos":
+                vocab_items = vocab.load_vocabulary()
+            else:
+                vocab_items = vocab.get_vocabulary_by_context(selected_context)
+            
+            if vocab_items:
+                st.write(f"**Total:** {len(vocab_items)} palavra(s)")
+                
+                for item in vocab_items:
+                    with st.expander(f"{item['word']} - {item['translation']}"):
+                        st.write(f"**Contexto:** {item['context']}")
+                        if item.get('notes'):
+                            st.write(f"**Notas:** {item['notes']}")
+                        if item.get('examples'):
+                            st.markdown("**Exemplos:**")
+                            for ex in item['examples']:
+                                st.write(f"🇬🇧 {ex['english']}")
+                                st.write(f"🇧🇷 {ex['portuguese']}")
+            else:
+                st.info("Nenhuma palavra encontrada neste contexto.")
+        else:
+            st.info("Nenhum contexto disponível. Adicione palavras na aba 'Adicionar'.")
+    
+    with vocab_tab4:
+        st.markdown("### Estatísticas do Vocabulário")
+        
+        if vocab_stats.get('contexts'):
+            st.markdown("#### Palavras por Contexto")
+            for context, count in sorted(vocab_stats['contexts'].items()):
+                st.write(f"- **{context}:** {count} palavra(s)")
+            
+            st.divider()
+            
+            # Texto de exemplo
+            st.markdown("#### Texto de Exemplo")
+            if st.button("🎲 Gerar Texto Aleatório"):
+                if vocab.list_contexts():
+                    random_context = random.choice(vocab.list_contexts())
+                    context_text = vocab.generate_context_text(random_context)
+                    
+                    if context_text:
+                        st.write(f"**Contexto:** {random_context}")
+                        col_en, col_pt = st.columns(2)
+                        with col_en:
+                            st.markdown("**English**")
+                            st.info(context_text['english'])
+                        with col_pt:
+                            st.markdown("**Português**")
+                            st.success(context_text['portuguese'])
+                        
+                        if context_text.get('words_used'):
+                            st.caption(f"Palavras usadas: {', '.join(context_text['words_used'])}")
+        else:
+            st.info("Nenhum dado disponível. Adicione palavras para ver estatísticas.")
