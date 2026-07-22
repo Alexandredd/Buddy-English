@@ -252,10 +252,17 @@ get_last_online_public_text_fetch_status = getattr(
 st.set_page_config(page_title="Buddy English", page_icon="🎯")
 
 # --- Menu lateral com Home ---
-menu = st.sidebar.radio("Navegação:", [
-    "Home 🏠", "Escuta 🎧", "Tradução 🌍", "Dicionário 🇺🇸", "Conjugação 🔄", "Leitura 📖", "Frases do dia a dia 💬",
-    "Podcast de Notícias 🎙️", "Chunks de Estudo 📚", "Vocabulário 📝"
-])
+if "menu_selecionado" not in st.session_state:
+    st.session_state.menu_selecionado = "Home 🏠"
+
+menu = st.sidebar.radio(
+    "Navegação:",
+    [
+        "Home 🏠", "Escuta 🎧", "Tradução 🌍", "Dicionário 🇺🇸", "Conjugação 🔄", "Leitura 📖", "Frases do dia a dia 💬",
+        "Podcast de Notícias 🎙️", "Chunks de Estudo 📚", "Vocabulário 📝"
+    ],
+    key="menu_selecionado"
+)
 
 # --- Inicialização de session state ---
 if "favorite_phrases" not in st.session_state:
@@ -367,8 +374,6 @@ if menu == "Home 🏠":
     st.markdown("<div style='text-align: center; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("💡 **Dica:** Use o menu lateral para navegar entre os módulos")
     st.markdown("</div>", unsafe_allow_html=True)
-    
-    st.stop()
 
 # --- Função de correção ---
 LANGUAGETOOL_ENDPOINTS = [
