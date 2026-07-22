@@ -532,6 +532,7 @@ def correct_english_text(text, api_key, model=DEFAULT_MODEL):
 
 # Regras locais de correção (fallback quando LanguageTool e OpenAI não estão disponíveis)
 _LOCAL_CORRECTION_PATTERNS = [
+    (r"\bi have (\d{1,2}) year\b", r"I am \1 years old", "Ajuste de estrutura de idade (year -> years old)."),
     (r"\bi have (\d{1,2}) years\b", r"I am \1 years old", "Ajuste de estrutura de idade."),
     (r"\bi have (\d{1,2}) years old\b", r"I am \1 years old", "Ajuste de estrutura de idade."),
     (r"\bhow is your name\b", "what is your name", "Ajuste de pergunta natural."),
