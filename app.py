@@ -253,7 +253,13 @@ st.set_page_config(page_title="Buddy English", page_icon="🎯")
 
 # --- Menu lateral com Home ---
 if "menu_selecionado" not in st.session_state:
-    st.session_state.menu_selecionado = "Home 🏠"
+    st.session_state.pending_menu = "Home 🏠"
+
+# Aplicar seleção pendente (se houver) antes de instanciar o widget.
+# Isso evita o erro "cannot be modified after the widget is instantiated".
+if "pending_menu" in st.session_state:
+    st.session_state.menu_selecionado = st.session_state.pending_menu
+    del st.session_state.pending_menu
 
 menu = st.sidebar.radio(
     "Navegação:",
@@ -292,7 +298,7 @@ if "chunks_initialized" not in st.session_state:
 
 # --- Função para voltar à home ---
 def voltar_home():
-    st.session_state.menu_selecionado = "Home 🏠"
+    st.session_state.pending_menu = "Home 🏠"
     st.rerun()
 
 # --- Página Home ---
@@ -315,57 +321,57 @@ if menu == "Home 🏠":
         st.markdown("### 🎧 Escuta")
         st.write("Pratique escuta com áudio de frases e diferentes sotaques")
         if st.button("Acessar Escuta", key="btn_home_escuta"):
-            st.session_state.menu_selecionado = "Escuta 🎧"
+            st.session_state.pending_menu = "Escuta 🎧"
             st.rerun()
         
         st.markdown("### 🌍 Tradução")
         st.write("Tradução bidirecional Português ↔ Inglês")
         if st.button("Acessar Tradução", key="btn_home_traducao"):
-            st.session_state.menu_selecionado = "Tradução 🌍"
+            st.session_state.pending_menu = "Tradução 🌍"
             st.rerun()
         
         st.markdown("### 🇺🇸 Dicionário")
         st.write("Consulte significados, pronúncia e sinônimos")
         if st.button("Acessar Dicionário", key="btn_home_dicionario"):
-            st.session_state.menu_selecionado = "Dicionário 🇺🇸"
+            st.session_state.pending_menu = "Dicionário 🇺🇸"
             st.rerun()
     
     with col2:
         st.markdown("### 🔄 Conjugação")
         st.write("50 verbos irregulares com todos os tempos verbais")
         if st.button("Acessar Conjugação", key="btn_home_conjugacao"):
-            st.session_state.menu_selecionado = "Conjugação 🔄"
+            st.session_state.pending_menu = "Conjugação 🔄"
             st.rerun()
         
         st.markdown("### 📖 Leitura")
         st.write("Textos clássicos com modo bilíngue e áudio")
         if st.button("Acessar Leitura", key="btn_home_leitura"):
-            st.session_state.menu_selecionado = "Leitura 📖"
+            st.session_state.pending_menu = "Leitura 📖"
             st.rerun()
         
         st.markdown("### 💬 Frases do Dia")
         st.write("Frases organizadas por contexto com quiz interativo")
         if st.button("Acessar Frases", key="btn_home_frases"):
-            st.session_state.menu_selecionado = "Frases do dia a dia 💬"
+            st.session_state.pending_menu = "Frases do dia a dia 💬"
             st.rerun()
     
     with col3:
         st.markdown("### 🎙️ Podcast")
         st.write("Notícias atuais com legendas e áudio")
         if st.button("Acessar Podcast", key="btn_home_podcast"):
-            st.session_state.menu_selecionado = "Podcast de Notícias 🎙️"
+            st.session_state.pending_menu = "Podcast de Notícias 🎙️"
             st.rerun()
         
         st.markdown("### 📚 Chunks")
         st.write("Sistema de repetição espaçada para memorização")
         if st.button("Acessar Chunks", key="btn_home_chunks"):
-            st.session_state.menu_selecionado = "Chunks de Estudo 📚"
+            st.session_state.pending_menu = "Chunks de Estudo 📚"
             st.rerun()
         
         st.markdown("### 📝 Vocabulário")
         st.write("Palavras por contexto com exemplos bilíngues")
         if st.button("Acessar Vocabulário", key="btn_home_vocabulario"):
-            st.session_state.menu_selecionado = "Vocabulário 📝"
+            st.session_state.pending_menu = "Vocabulário 📝"
             st.rerun()
     
     st.divider()
@@ -1149,7 +1155,7 @@ conjugacoes = {
 if menu == "Escuta 🎧":
     st.subheader("Ouça frases em inglês")
     if st.button("🏠 Voltar à Home", key="btn_voltar_home_escuta"):
-        st.session_state.menu_selecionado = "Home 🏠"
+        st.session_state.pending_menu = "Home 🏠"
         st.rerun()
     st.markdown("---")
     frase = st.text_input("Digite uma frase em inglês:")
@@ -1160,7 +1166,7 @@ if menu == "Escuta 🎧":
 elif menu == "Tradução 🌍":
     st.subheader("Tradução de textos com Google Translator")
     if st.button("🏠 Voltar à Home", key="btn_voltar_home_traducao"):
-        st.session_state.menu_selecionado = "Home 🏠"
+        st.session_state.pending_menu = "Home 🏠"
         st.rerun()
     st.markdown("---")
     if "translation_google_text" not in st.session_state:
@@ -1242,7 +1248,7 @@ elif menu == "Tradução 🌍":
 elif menu == "Dicionário 🇺🇸":
     st.subheader("Dicionário Inglês-Inglês (foco em uso americano)")
     if st.button("🏠 Voltar à Home", key="btn_voltar_home_dicionario"):
-        st.session_state.menu_selecionado = "Home 🏠"
+        st.session_state.pending_menu = "Home 🏠"
         st.rerun()
     st.markdown("---")
     st.caption("Consulte definição, classe gramatical, exemplo e pronúncia em inglês.")
@@ -1303,7 +1309,7 @@ elif menu == "Dicionário 🇺🇸":
 elif menu == "Conjugação 🔄":
     st.subheader("Conjugação de verbos irregulares")
     if st.button("🏠 Voltar à Home", key="btn_voltar_home_conjugacao"):
-        st.session_state.menu_selecionado = "Home 🏠"
+        st.session_state.pending_menu = "Home 🏠"
         st.rerun()
     st.markdown("---")
     verbo = st.selectbox("Escolha um verbo:", list(conjugacoes.keys()))
@@ -1318,7 +1324,7 @@ elif menu == "Leitura 📖":
     st.subheader("Leitura com textos em domínio público")
     st.caption("Leia textos clássicos em inglês e ouça para treinar pronúncia.")
     if st.button("🏠 Voltar à Home", key="btn_voltar_home_leitura"):
-        st.session_state.menu_selecionado = "Home 🏠"
+        st.session_state.pending_menu = "Home 🏠"
         st.rerun()
     st.markdown("---")
     modo_bilingue = st.toggle("Modo bilíngue lado a lado", value=False)
@@ -1641,7 +1647,7 @@ elif menu == "Leitura 📖":
 elif menu == "Frases do dia a dia 💬":
     st.subheader("Frases do inglês americano por contexto")
     if st.button("🏠 Voltar à Home", key="btn_voltar_home_frases"):
-        st.session_state.menu_selecionado = "Home 🏠"
+        st.session_state.pending_menu = "Home 🏠"
         st.rerun()
     st.markdown("---")
     st.caption("Veja quando usar cada frase e a melhor tradução para o português. Também é possível adicionar frases novas.")
@@ -1973,7 +1979,7 @@ elif menu == "Frases do dia a dia 💬":
 elif menu == "Podcast de Notícias 🎙️":
     st.subheader("Podcast de notícias atuais do mundo (em inglês)")
     if st.button("🏠 Voltar à Home", key="btn_voltar_home_podcast"):
-        st.session_state.menu_selecionado = "Home 🏠"
+        st.session_state.pending_menu = "Home 🏠"
         st.rerun()
     st.markdown("---")
     st.caption(
@@ -2110,7 +2116,7 @@ elif menu == "Chunks de Estudo 📚":
     st.subheader("Chunks de Estudo - Sistema de Aprendizado")
     st.caption("Gerencie frases de estudo, faça upload, download e use ferramentas de aprendizado")
     if st.button("🏠 Voltar à Home", key="btn_voltar_home_chunks"):
-        st.session_state.menu_selecionado = "Home 🏠"
+        st.session_state.pending_menu = "Home 🏠"
         st.rerun()
     st.markdown("---")
     
@@ -2362,7 +2368,7 @@ elif menu == "Vocabulário 📝":
     st.subheader("Vocabulário por Contexto")
     st.caption("Consulte, adicione e estude palavras organizadas por contexto com exemplos bilíngues")
     if st.button("🏠 Voltar à Home", key="btn_voltar_home_vocabulario"):
-        st.session_state.menu_selecionado = "Home 🏠"
+        st.session_state.pending_menu = "Home 🏠"
         st.rerun()
     st.markdown("---")
     
