@@ -530,12 +530,164 @@ def correct_english_text(text, api_key, model=DEFAULT_MODEL):
 # Função de fallback (correção local sem IA)
 # ---------------------------------------------------------------------------
 
+# Regras locais de correção (fallback quando LanguageTool e OpenAI não estão disponíveis)
+_LOCAL_CORRECTION_PATTERNS = [
+    (r"\bi have (\d{1,2}) years\b", r"I am \1 years old", "Ajuste de estrutura de idade."),
+    (r"\bi have (\d{1,2}) years old\b", r"I am \1 years old", "Ajuste de estrutura de idade."),
+    (r"\bhow is your name\b", "what is your name", "Ajuste de pergunta natural."),
+    (r"\bmy name is ([a-z]+) and i have (\d{1,2}) years\b", r"My name is \1 and I am \2 years old", "Ajuste de estrutura natural."),
+    (r"\bi am with (doubt|doubts)\b", "I have a question", "Ajuste de expressao natural."),
+    (r"\bi have sure\b", "I am sure", "Ajuste de expressao natural."),
+    (r"\bmore better\b", "better", "Ajuste de comparativo."),
+    (r"\bmore easier\b", "easier", "Ajuste de comparativo."),
+    (r"\bmore faster\b", "faster", "Ajuste de comparativo."),
+    (r"\btake easy\b", "take it easy", "Ajuste de expressao natural."),
+    (r"\btake it easy man\b", "take it easy, man", "Ajuste de pontuacao vocativa."),
+    (r"\bin the weekend\b", "on the weekend", "Ajuste para uso comum no ingles americano."),
+    (r"\bmake a party\b", "have a party", "Ajuste de colocacao comum."),
+    (r"\bdo a party\b", "have a party", "Ajuste de colocacao comum."),
+    (r"\bmarried with\b", "married to", "Ajuste de preposicao."),
+    (r"\bdepend of\b", "depend on", "Ajuste de preposicao."),
+    (r"\bdiscuss about\b", "discuss", "Ajuste de verbo sem preposicao."),
+    (r"\bexplain me\b", "explain to me", "Ajuste de preposicao."),
+    (r"\bi have a doubt\b", "I have a question", "Ajuste de expressao natural."),
+    (r"\bif i was\b", "if I were", "Ajuste de modo verbal."),
+    (r"\bpeople is\b", "people are", "Ajuste de concordancia."),
+    (r"\binformations\b", "information", "Ajuste de substantivo incontavel."),
+    (r"\badvices\b", "advice", "Ajuste de substantivo incontavel."),
+    (r"\bfurnitures\b", "furniture", "Ajuste de substantivo incontavel."),
+    (r"\bhome office\b", "remote work", "Ajuste de termo mais natural em ingles americano."),
+    (r"\bopen the camera\b", "turn on the camera", "Ajuste de verbo frasal."),
+    (r"\bclose the camera\b", "turn off the camera", "Ajuste de verbo frasal."),
+    (r"\bturn on the light\b", "turn on the lights", "Ajuste de uso comum."),
+    (r"\bi\b", "I", "Pronome pessoal em maiusculo."),
+    (r"\bdont\b", "don't", "Correcao ortografica."),
+    (r"\bcant\b", "can't", "Correcao ortografica."),
+    (r"\bdoesnt\b", "doesn't", "Correcao ortografica."),
+    (r"\bdidnt\b", "didn't", "Correcao ortografica."),
+    (r"\bwont\b", "won't", "Correcao ortografica."),
+    (r"\bshouldnt\b", "shouldn't", "Correcao ortografica."),
+    (r"\bcouldnt\b", "couldn't", "Correcao ortografica."),
+    (r"\bim\b", "I'm", "Correcao de contracao."),
+    (r"\bive\b", "I've", "Correcao de contracao."),
+    (r"\bill\b", "I'll", "Correcao de contracao."),
+    (r"\bid\b", "I'd", "Correcao de contracao."),
+    (r"\bweve\b", "we've", "Correcao de contracao."),
+    (r"\btheyre\b", "they're", "Correcao de contracao."),
+    (r"\byoure\b", "you're", "Correcao de contracao."),
+    (r"\bits\b", "it's", "Correcao de contracao."),
+    (r"\bteh\b", "the", "Correcao ortografica."),
+    (r"\brecieve\b", "receive", "Correcao ortografica."),
+    (r"\badress\b", "address", "Correcao ortografica."),
+    (r"\bwich\b", "which", "Correcao ortografica."),
+    (r"\bsepareted\b", "separated", "Correcao ortografica."),
+    (r"\bdefinately\b", "definitely", "Correcao ortografica."),
+    (r"\boccured\b", "occurred", "Correcao ortografica."),
+    (r"\bhe go\b", "he goes", "Ajuste de concordancia verbal."),
+    (r"\bshe go\b", "she goes", "Ajuste de concordancia verbal."),
+    (r"\bit go\b", "it goes", "Ajuste de concordancia verbal."),
+    (r"\bhe have\b", "he has", "Ajuste de concordancia verbal."),
+    (r"\bshe have\b", "she has", "Ajuste de concordancia verbal."),
+    (r"\bit have\b", "it has", "Ajuste de concordancia verbal."),
+    (r"\bthere is many\b", "there are many", "Ajuste de concordancia."),
+    (r"\bthere is a lot of people\b", "there are a lot of people", "Ajuste de concordancia."),
+    (r"\bone of the bests\b", "one of the best", "Ajuste de pluralizacao."),
+    (r"\btakw\b", "take", "Correcao ortografica."),
+]
+
+
+def _apply_local_corrections(text):
+    """
+    Aplica correções locais offline (regras de regex) ao texto.
+
+    Parameters
+    ----------
+    text : str
+        Texto em inglês a ser corrigido.
+
+    Returns
+    -------
+    tuple
+        (texto_corrigido, lista_de_ajustes)
+    """
+    import re as _re
+
+    original = text or ""
+    corrigido = original
+    ajustes = []
+
+    if not original.strip():
+        return original, ajustes
+
+    # Normaliza espaços duplicados e espaços antes de pontuação
+    novo = _re.sub(r"\s+", " ", corrigido).strip()
+    novo = _re.sub(r"\s+([,.;:!?])", r"\1", novo)
+    if novo != corrigido:
+        ajustes.append({"mensagem": "Ajuste de espacos.", "de": corrigido, "para": novo})
+        corrigido = novo
+
+    for pattern, replacement, mensagem in _LOCAL_CORRECTION_PATTERNS:
+        novo = _re.sub(pattern, replacement, corrigido, flags=_re.IGNORECASE)
+        if novo != corrigido:
+            ajustes.append({"mensagem": mensagem, "de": corrigido, "para": novo})
+            corrigido = novo
+
+    # Capitaliza início de sentenças
+    partes = _re.split(r"([.!?]\s+)", corrigido)
+    partes_corrigidas = []
+    for i, parte in enumerate(partes):
+        if i % 2 == 0:
+            stripped = parte.lstrip()
+            if stripped:
+                prefix = parte[: len(parte) - len(stripped)]
+                parte = prefix + stripped[0].upper() + stripped[1:]
+        partes_corrigidas.append(parte)
+    novo = "".join(partes_corrigidas)
+    if novo != corrigido:
+        ajustes.append({"mensagem": "Capitalizacao de sentencas.", "de": corrigido, "para": novo})
+        corrigido = novo
+
+    if corrigido and corrigido[-1] not in ".!?":
+        novo = f"{corrigido}."
+        ajustes.append({"mensagem": "Pontuacao final.", "de": corrigido, "para": novo})
+        corrigido = novo
+
+    return corrigido, ajustes
+
+
+def _try_get_app_correction_functions():
+    """
+    Tenta obter as funções corrigir_texto e correcao_local_basica do módulo app.
+
+    No Streamlit Cloud, o app pode estar carregado como '__main__' ou 'streamlit_app',
+    então verificamos sys.modules com vários nomes possíveis.
+
+    Returns
+    -------
+    tuple
+        (corrigir_texto, correcao_local_basica) - podem ser None se não encontrados.
+    """
+    import sys
+
+    for module_name in ("app", "__main__", "streamlit_app"):
+        module = sys.modules.get(module_name)
+        if module is None:
+            continue
+        corrigir_texto = getattr(module, "corrigir_texto", None)
+        correcao_local_basica = getattr(module, "correcao_local_basica", None)
+        if corrigir_texto or correcao_local_basica:
+            return corrigir_texto, correcao_local_basica
+
+    return None, None
+
+
 def correct_english_text_fallback(text):
     """
     Correção básica sem IA (usando LanguageTool + correções locais).
 
     Esta função é usada como fallback quando a API OpenAI não está disponível.
-    Ela reutiliza as funções existentes do app.py.
+    Primeiro tenta usar as funções do app.py (via sys.modules), e se não conseguir,
+    usa as regras locais embutidas neste módulo.
 
     Parameters
     ----------
@@ -547,21 +699,13 @@ def correct_english_text_fallback(text):
     dict
         Dados da correção no mesmo formato do módulo de IA.
     """
-    # Importa as funções do app.py (evita import circular)
-    import importlib
-
-    try:
-        app_module = importlib.import_module("app")
-        corrigir_texto = getattr(app_module, "corrigir_texto", None)
-        correcao_local_basica = getattr(app_module, "correcao_local_basica", None)
-    except Exception:
-        corrigir_texto = None
-        correcao_local_basica = None
-
-    # Correção com LanguageTool (se disponível)
     texto_corrigido = text
     ajustes = []
 
+    # Tenta obter as funções do app.py via sys.modules
+    corrigir_texto, correcao_local_basica = _try_get_app_correction_functions()
+
+    # Correção com LanguageTool (se disponível via app.py)
     if corrigir_texto:
         try:
             result = corrigir_texto(text)
@@ -570,13 +714,17 @@ def correct_english_text_fallback(text):
         except Exception:
             pass
 
-    # Correção local adicional
+    # Correção local adicional (via app.py ou via regras embutidas)
     if correcao_local_basica:
         try:
             texto_corrigido, ajustes_locais = correcao_local_basica(texto_corrigido)
             ajustes.extend(ajustes_locais)
         except Exception:
             pass
+    else:
+        # Usa as regras locais embutidas neste módulo
+        texto_corrigido, ajustes_locais = _apply_local_corrections(texto_corrigido)
+        ajustes.extend(ajustes_locais)
 
     # Constrói explicações a partir dos ajustes
     explicacoes = []
