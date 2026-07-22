@@ -18,6 +18,7 @@ import public_domain_texts as pdt
 import news_podcast as npc
 import chuncks as ck
 import vocabulary as vocab
+import english_corrector as ec
 
 try:
     _deep_translator = importlib.import_module("deep_translator")
@@ -265,7 +266,7 @@ menu = st.sidebar.radio(
     "Navegação:",
     [
         "Home 🏠", "Escuta 🎧", "Tradução 🌍", "Dicionário 🇺🇸", "Conjugação 🔄", "Leitura 📖", "Frases do dia a dia 💬",
-        "Podcast de Notícias 🎙️", "Chunks de Estudo 📚", "Vocabulário 📝"
+        "Podcast de Notícias 🎙️", "Chunks de Estudo 📚", "Vocabulário 📝", "Correção de Inglês 🤖"
     ],
     key="menu_selecionado"
 )
@@ -296,6 +297,18 @@ if "chunks_initialized" not in st.session_state:
     st.session_state.chunks_initialized = True
     st.session_state.chunks_stats = ck.get_study_statistics()
 
+# --- Session state do módulo de correção de inglês ---
+if "correction_input_text" not in st.session_state:
+    st.session_state.correction_input_text = ""
+if "correction_result" not in st.session_state:
+    st.session_state.correction_result = None
+if "correction_error" not in st.session_state:
+    st.session_state.correction_error = None
+if "correction_is_loading" not in st.session_state:
+    st.session_state.correction_is_loading = False
+if "correction_history" not in st.session_state:
+    st.session_state.correction_history = ec.load_correction_history()
+
 # --- Função para voltar à home ---
 def voltar_home():
     st.session_state.pending_menu = "Home 🏠"
@@ -308,7 +321,7 @@ if menu == "Home 🏠":
     st.markdown("""
     <div style="text-align: center; padding: 20px 0;">
         <h2 style="color: #1E88E5;">Sistema interativo de aprendizado de inglês americano</h2>
-        <p style="font-size: 18px;">9 módulos integrados para praticar todas as habilidades do inglês</p>
+        <p style="font-size: 18px;">10 módulos integrados para praticar todas as habilidades do inglês</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -372,6 +385,12 @@ if menu == "Home 🏠":
         st.write("Palavras por contexto com exemplos bilíngues")
         if st.button("Acessar Vocabulário", key="btn_home_vocabulario"):
             st.session_state.pending_menu = "Vocabulário 📝"
+            st.rerun()
+        
+        st.markdown("### 🤖 Correção de Inglês")
+        st.write("Assistente de correção com IA para estudantes brasileiros")
+        if st.button("Acessar Correção", key="btn_home_correcao"):
+            st.session_state.pending_menu = "Correção de Inglês 🤖"
             st.rerun()
     
     st.divider()
@@ -2638,3 +2657,248 @@ elif menu == "Vocabulário 📝":
                             st.caption(f"Palavras usadas: {', '.join(context_text['words_used'])}")
         else:
             st.info("Nenhum dado disponível. Adicione palavras para ver estatísticas.")
+
+elif menu == "Correção de Inglês 🤖":
+    st.subheader("🤖 Correção de Inglês com IA")
+    st.caption("Assistente de correção para estudantes brasileiros — corrige gramática, ortografia, pontuação, gera versão natural, explica erros, sugere phrasal verbs e novo vocabulário. Tudo em português 🇧🇷")
+    if st.button("🏠 Voltar à Home", key="btn_voltar_home_correcao"):
+        st.session_state.pending_menu = "Home 🏠"
+        st.rerun()
+    st.markdown("---")
+
+    # --- Configurações da API ---
+    default_openai_key = os.getenv("OPENAI_API_KEY", "")
+    api_key = st.text_input(
+        "OpenAI API Key (opcional)",
+        value=default_openai_key,
+        type="password",
+        help="Se não informada, usa a variável de ambiente OPENAI_API_KEY. Sem chave, ativa correção local básica.",
+        key="correction_api_key",
+    )
+    model = st.selectbox(
+        "Modelo da IA",
+        ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
+        index=0,
+        key="correction_model",
+    )
+
+    # --- Campo de texto ---
+    texto_input = st.text_area(
+        "Digite seu texto em inglês:",
+        value=st.session_state.correction_input_text,
+        height=180,
+        placeholder="Paste your English text here...",
+        key="correction_text_area",
+    )
+    st.session_state.correction_input_text = texto_input
+
+    col_corrigir, col_limpar = st.columns([2, 1])
+    with col_corrigir:
+        if st.button("🔍 Corrigir com IA", type="primary", key="btn_corrigir_ia", disabled=st.session_state.correction_is_loading):
+            st.session_state.correction_is_loading = True
+            st.session_state.correction_result = None
+            st.session_state.correction_error = None
+            st.rerun()
+    with col_limpar:
+        if st.button("🧹 Limpar", key="btn_limpar_correcao"):
+            st.session_state.correction_input_text = ""
+            st.session_state.correction_result = None
+            st.session_state.correction_error = None
+            st.rerun()
+
+    # --- Processamento (loading) ---
+    if st.session_state.correction_is_loading:
+        with st.spinner("🤖 A IA está analisando seu texto... Isso pode levar alguns segundos."):
+            import time as _time
+            _time.sleep(0.5)  # Pequeno delay para o spinner aparecer
+
+            if not texto_input or not texto_input.strip():
+                st.session_state.correction_error = "Digite um texto em inglês para corrigir."
+            elif api_key:
+                result = ec.correct_english_text(texto_input, api_key, model=model)
+                if result["success"]:
+                    st.session_state.correction_result = result["data"]
+                    st.session_state.correction_error = None
+                    # Salva no histórico
+                    ec.save_correction_to_history(result["data"])
+                    st.session_state.correction_history = ec.load_correction_history()
+                else:
+                    st.session_state.correction_error = result["error"]
+            else:
+                # Fallback: correção local sem IA
+                fallback_data = ec.correct_english_text_fallback(texto_input)
+                fallback_data["original"] = texto_input.strip()
+                st.session_state.correction_result = fallback_data
+                st.session_state.correction_error = None
+                st.warning("⚠️ OpenAI API Key não configurada. Usando correção local básica (LanguageTool + regras locais). Para a experiência completa com IA, configure sua chave OpenAI.")
+
+            st.session_state.correction_is_loading = False
+            st.rerun()
+
+    # --- Exibição de erros ---
+    if st.session_state.correction_error:
+        st.error(f"❌ {st.session_state.correction_error}")
+
+    # --- Exibição do resultado ---
+    result_data = st.session_state.correction_result
+
+    if result_data:
+        # Botão para copiar tudo
+        full_result_text = ec.format_correction_for_display(result_data)
+        full_copy = f"""✅ Texto corrigido
+{full_result_text.get('texto_corrigido', '')}
+
+🇺🇸 Versão natural de nativo
+{full_result_text.get('versao_natural', '')}
+
+📚 Explicação dos erros
+{chr(10).join([f"- Erro: {e.get('erro_original', '')} | Correção: {e.get('correcao', '')} | Explicação: {e.get('explicacao', '')}" for e in full_result_text.get('explicacoes', [])])}
+
+💬 Phrasal verbs e expressões
+{chr(10).join([f"- Expressão: {p.get('expressao', '')} | Significado: {p.get('significado', '')} | Exemplo: {p.get('exemplo', '')}" for p in full_result_text.get('phrasal_verbs', [])])}
+{chr(10).join([f"- Expressão: {p.get('expressao', '')} | Significado: {p.get('significado', '')} | Exemplo: {p.get('exemplo', '')}" for p in full_result_text.get('expressoes_idiomaticas', [])])}
+
+📝 Novo vocabulário
+{chr(10).join([f"- {v.get('palavra', '')} | {v.get('traducao', '')} | {v.get('classe', '')} | {v.get('exemplo', '')}" for v in full_result_text.get('novo_vocabulario', [])])}"""
+
+        st.markdown(ec.render_copy_button(full_copy, label="📋 Copiar tudo", key="copy_all_result"), unsafe_allow_html=True)
+
+        st.divider()
+
+        # --- ✅ Texto corrigido ---
+        st.markdown("### ✅ Texto corrigido")
+        st.code(full_result_text.get("texto_corrigido", ""), language="text")
+        st.markdown(ec.render_copy_button(full_result_text.get("texto_corrigido", ""), label="📋 Copiar", key="copy_corrected"), unsafe_allow_html=True)
+
+        # --- 🇺🇸 Versão natural ---
+        st.markdown("### 🇺🇸 Versão natural de nativo")
+        st.code(full_result_text.get("versao_natural", ""), language="text")
+        st.markdown(ec.render_copy_button(full_result_text.get("versao_natural", ""), label="📋 Copiar", key="copy_natural"), unsafe_allow_html=True)
+
+        # --- 📚 Explicação dos erros ---
+        explicacoes = full_result_text.get("explicacoes", [])
+        if explicacoes:
+            st.markdown("### 📚 Explicação dos erros")
+            for idx, exp in enumerate(explicacoes, 1):
+                with st.expander(f"Erro {idx}: {exp.get('erro_original', '')[:60]}"):
+                    st.markdown(f"**Erro original:** {exp.get('erro_original', '')}")
+                    st.markdown(f"**Correção:** {exp.get('correcao', '')}")
+                    st.markdown(f"**Explicação:** {exp.get('explicacao', '')}")
+        else:
+            st.markdown("### 📚 Explicação dos erros")
+            st.info("Nenhum erro específico identificado.")
+
+        # --- 💬 Phrasal verbs e expressões ---
+        phrasal_verbs = full_result_text.get("phrasal_verbs", [])
+        expressoes = full_result_text.get("expressoes_idiomaticas", [])
+        if phrasal_verbs or expressoes:
+            st.markdown("### 💬 Phrasal verbs e expressões")
+            for idx, pv in enumerate(phrasal_verbs, 1):
+                with st.expander(f"Phrasal Verb {idx}: {pv.get('expressao', '')}"):
+                    st.markdown(f"**Expressão:** {pv.get('expressao', '')}")
+                    st.markdown(f"**Significado:** {pv.get('significado', '')}")
+                    st.markdown(f"**Exemplo:** {pv.get('exemplo', '')}")
+            for idx, expr in enumerate(expressoes, 1):
+                with st.expander(f"Expressão {idx}: {expr.get('expressao', '')}"):
+                    st.markdown(f"**Expressão:** {expr.get('expressao', '')}")
+                    st.markdown(f"**Significado:** {expr.get('significado', '')}")
+                    st.markdown(f"**Exemplo:** {expr.get('exemplo', '')}")
+        else:
+            st.markdown("### 💬 Phrasal verbs e expressões")
+            st.info("Nenhuma sugestão de phrasal verb ou expressão idiomática para este texto.")
+
+        # --- 📝 Novo vocabulário ---
+        vocabulario = full_result_text.get("novo_vocabulario", [])
+        if vocabulario:
+            st.markdown("### 📝 Novo vocabulário")
+            vocab_rows = []
+            for v in vocabulario:
+                vocab_rows.append({
+                    "Palavra": v.get("palavra", ""),
+                    "Tradução": v.get("traducao", ""),
+                    "Classe": v.get("classe", ""),
+                    "Exemplo": v.get("exemplo", ""),
+                })
+            st.table(vocab_rows)
+        else:
+            st.markdown("### 📝 Novo vocabulário")
+            st.info("Nenhuma nova palavra identificada para este texto.")
+
+        # --- Resumo estatístico ---
+        summary = ec.get_correction_summary(result_data)
+        st.divider()
+        st.markdown("#### 📊 Resumo da correção")
+        col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+        with col_s1:
+            st.metric("Erros explicados", summary["explicacoes"])
+        with col_s2:
+            st.metric("Phrasal verbs", summary["phrasal_verbs"])
+        with col_s3:
+            st.metric("Expressões", summary["expressoes_idiomaticas"])
+        with col_s4:
+            st.metric("Novo vocabulário", summary["novo_vocabulario"])
+
+    # --- Histórico ---
+    st.divider()
+    st.markdown("### 📂 Histórico de correções")
+
+    history = st.session_state.correction_history
+    if not history:
+        st.info("Nenhuma correção salva ainda. Corrija um texto para vê-lo aqui.")
+    else:
+        st.write(f"**Total salvo:** {len(history)} correção(ns)")
+
+        for idx, entry in enumerate(history):
+            timestamp = entry.get("timestamp", "")
+            # Formata o timestamp
+            try:
+                from datetime import datetime as _dt
+                dt = _dt.fromisoformat(timestamp)
+                ts_str = dt.strftime("%d/%m/%Y %H:%M")
+            except Exception:
+                ts_str = timestamp or "-"
+
+            original_preview = (entry.get("original", "") or "")[:80]
+            if len(entry.get("original", "") or "") > 80:
+                original_preview += "..."
+
+            with st.expander(f"#{idx + 1} • {ts_str} • {original_preview}"):
+                st.markdown(f"**Original:** {entry.get('original', '')}")
+                st.markdown(f"**Corrigido:** {entry.get('texto_corrigido', '')}")
+                st.markdown(f"**Versão natural:** {entry.get('versao_natural', '')}")
+
+                exps = entry.get("explicacoes", [])
+                if exps:
+                    st.markdown("**Explicações:**")
+                    for e in exps:
+                        st.markdown(f"- Erro: {e.get('erro_original', '')} → Correção: {e.get('correcao', '')}")
+
+                pvs = entry.get("phrasal_verbs", [])
+                if pvs:
+                    st.markdown("**Phrasal verbs:**")
+                    for p in pvs:
+                        st.markdown(f"- {p.get('expressao', '')}: {p.get('significado', '')}")
+
+                exprs = entry.get("expressoes_idiomaticas", [])
+                if exprs:
+                    st.markdown("**Expressões idiomáticas:**")
+                    for e in exprs:
+                        st.markdown(f"- {e.get('expressao', '')}: {e.get('significado', '')}")
+
+                vocabs = entry.get("novo_vocabulario", [])
+                if vocabs:
+                    st.markdown("**Novo vocabulário:**")
+                    for v in vocabs:
+                        st.markdown(f"- {v.get('palavra', '')} ({v.get('classe', '')}): {v.get('traducao', '')}")
+
+                st.markdown(ec.render_copy_button(
+                    entry.get("texto_corrigido", ""),
+                    label="📋 Copiar corrigido",
+                    key=f"copy_hist_{entry.get('id', idx)}"
+                ), unsafe_allow_html=True)
+
+        # Botão para limpar histórico
+        if st.button("🗑️ Limpar histórico", key="btn_clear_history"):
+            ec.clear_correction_history()
+            st.session_state.correction_history = []
+            st.rerun()

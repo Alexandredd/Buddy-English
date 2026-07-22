@@ -95,6 +95,20 @@ O Buddy-English é uma plataforma completa para treinar inglês com foco em **in
 - Refinamento opcional com **OpenAI** (GPT-4o-mini)
 - Níveis de correção: Básico, Estrito, Nativo US
 
+### 🤖 Correção de Inglês com IA
+- **Assistente de correção** para estudantes brasileiros
+- Corrige **gramática, ortografia e pontuação** com IA (OpenAI)
+- Gera **versão natural** usada por falantes nativos
+- **Explicação detalhada** de cada erro em português
+- Sugere **phrasal verbs** e **expressões idiomáticas** apropriadas
+- Lista **novo vocabulário** com tradução, classe gramatical e exemplos
+- **Histórico** de correções salvo localmente
+- **Botões de cópia** para cada resultado
+- **Loading** durante o processamento
+- **Tratamento de erros** da API
+- **Fallback** para correção local (LanguageTool + regras) quando a API OpenAI não está disponível
+- Todas as explicações em **português brasileiro**
+
 ---
 
 ## 🚀 Como Executar
@@ -140,6 +154,7 @@ Buddy-English/
 ├── news_podcast.py                 # Módulo de podcast de notícias
 ├── public_domain_texts.py          # Módulo de textos em domínio público
 ├── vocabulary.py                   # Módulo de vocabulário por contexto
+├── english_corrector.py            # Módulo de correção de inglês com IA
 ├── requirements.txt                # Dependências do projeto
 ├── .gitignore                      # Arquivos ignorados pelo Git
 │
@@ -158,7 +173,7 @@ Buddy-English/
 
 ## 🏗️ Arquitetura de Navegação
 
-O app utiliza um **menu lateral** (`st.sidebar.radio`) como sistema de navegação entre os 9 módulos. A chave `menu_selecionado` no `session_state` controla a página ativa.
+O app utiliza um **menu lateral** (`st.sidebar.radio`) como sistema de navegação entre os 10 módulos. A chave `menu_selecionado` no `session_state` controla a página ativa.
 
 ### Padrão `pending_menu`
 
@@ -218,7 +233,7 @@ deep-translator>=1.11.0
 
 ## 📊 Estatísticas do Sistema
 
-- **9 módulos** de aprendizado integrados
+- **10 módulos** de aprendizado integrados
 - **50 verbos irregulares** com conjugação completa
 - **8 chunks base** pré-carregados
 - **Múltiplos contextos** de frases do dia a dia
