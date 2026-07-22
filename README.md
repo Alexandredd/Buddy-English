@@ -156,6 +156,29 @@ Buddy-English/
 
 ---
 
+## 🏗️ Arquitetura de Navegação
+
+O app utiliza um **menu lateral** (`st.sidebar.radio`) como sistema de navegação entre os 9 módulos. A chave `menu_selecionado` no `session_state` controla a página ativa.
+
+### Padrão `pending_menu`
+
+Devido a uma restrição do Streamlit (não é possível modificar `st.session_state` de um widget **após** sua instanciação no mesmo ciclo de execução), os botões de navegação utilizam o padrão `pending_menu`:
+
+1. O botão define `st.session_state.pending_menu` e chama `st.rerun()`
+2. No próximo ciclo, antes de instanciar o widget `radio`, o código aplica `pending_menu` → `menu_selecionado`
+3. O widget `radio` então carrega o novo valor sem erros
+
+```python
+# Antes de instanciar o widget:
+if "pending_menu" in st.session_state:
+    st.session_state.menu_selecionado = st.session_state.pending_menu
+    del st.session_state.pending_menu
+
+menu = st.sidebar.radio("Navegação:", [...], key="menu_selecionado")
+```
+
+---
+
 ## 🛠️ Tecnologias Utilizadas
 
 | Tecnologia | Versão | Finalidade |
