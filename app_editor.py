@@ -9,7 +9,7 @@ st.title("📝 Buddy-English Editor")
 st.markdown("---")
 
 # Inicializar o código padrão se não existir
-default_code = '''import streamlit as st
+default_code = """import streamlit as st
 from datetime import datetime
 
 # Configuração da página
@@ -21,18 +21,51 @@ st.subheader("Seu assistente de aprendizado de inglês")
 
 # Sidebar com navegação
 st.sidebar.title("Menu")
-page = st.sidebar.radio("Navegação", ["Home", "Lições", "Vocabulário", "Quiz"])
+
+# Inicializar página no session_state se não existir
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = "Home"
+
+# Navegação - o radio controla automaticamente o session_state
+pages = ["Home", "Lições", "Vocabulário", "Quiz"]
+st.sidebar.radio("Navegação", pages, 
+                 index=pages.index(st.session_state.current_page),
+                 key="current_page")
 
 # Páginas
-if page == "Home":
+if st.session_state.current_page == "Home":
     st.header("Bem-vindo ao Buddy-English!")
     st.write("Aprenda inglês de forma interativa e divertida.")
     
     # Data atual
     st.info(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    
+    # Botões da Home
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📚 Começar Lições", key="btn_lessons"):
+            st.session_state.current_page = "Lições"
+            st.rerun()
+    
+    with col2:
+        if st.button("📖 Ver Vocabulário", key="btn_vocab"):
+            st.session_state.current_page = "Vocabulário"
+            st.rerun()
+    
+    with col3:
+        if st.button("❓ Fazer Quiz", key="btn_quiz"):
+            st.session_state.current_page = "Quiz"
+            st.rerun()
 
-elif page == "Lições":
+elif st.session_state.current_page == "Lições":
     st.header("📚 Lições")
+    
+    # Botão de voltar para Home
+    if st.button("🏠 Voltar para Home", key="btn_back_home_lessons"):
+        st.session_state.current_page = "Home"
+        st.rerun()
+    
     lesson = st.selectbox("Escolha uma lição:", 
                           ["Presente Simples", "Passado Simples", "Futuro"])
     
@@ -48,8 +81,13 @@ elif page == "Lições":
         st.write("**Futuro** é usado para ações que ainda vão acontecer.")
         st.code("I will play football tomorrow.")
 
-elif page == "Vocabulário":
+elif st.session_state.current_page == "Vocabulário":
     st.header("📖 Vocabulário")
+    
+    # Botão de voltar para Home
+    if st.button("🏠 Voltar para Home", key="btn_back_home_vocab"):
+        st.session_state.current_page = "Home"
+        st.rerun()
     
     word = st.text_input("Digite uma palavra em inglês:")
     if word:
@@ -60,12 +98,17 @@ elif page == "Vocabulário":
 else:  # Quiz
     st.header("❓ Quiz")
     
+    # Botão de voltar para Home
+    if st.button("🏠 Voltar para Home", key="btn_back_home_quiz"):
+        st.session_state.current_page = "Home"
+        st.rerun()
+    
     question = st.radio(
         "Qual é a tradução de 'Hello'?",
         ["Olá", "Tchau", "Bom dia", "Boa noite"]
     )
     
-    if st.button("Verificar"):
+    if st.button("Verificar", key="btn_check"):
         if question == "Olá":
             st.success("✅ Correto!")
         else:
@@ -74,7 +117,7 @@ else:  # Quiz
 # Footer
 st.markdown("---")
 st.markdown("💡 Desenvolvido com Streamlit")
-'''
+"""
 
 # Carregar código salvo anteriormente se existir
 if 'code' not in st.session_state:
@@ -107,7 +150,7 @@ with col1:
     with col_run:
         if st.button("▶️ Executar"):
             st.session_state.code = edited_code
-            st.info("Para executar o app, use o comando: `streamlit run app.py`")
+            st.info("Para executar o app, use o comando: streamlit run app.py")
     
     with col_reset:
         if st.button("🔄 Resetar"):
