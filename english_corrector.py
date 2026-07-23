@@ -505,21 +505,47 @@ def render_copy_button(text_content, label="📋 Copiar", key="copy_btn"):
     str
         HTML do botão (para ser usado com st.markdown unsafe_allow_html=True).
     """
-    # Escapa o texto para uso seguro em JavaScript
+    # Escapa o texto para uso seguro em JavaScript + HTML
+    # json.dumps produz uma string com aspas duplas ao redor, ex.: "texto\ncom\nquebras"
+    # Precisamos:
+    # 1. Gerar o JSON (que já escapa \n, \t, etc. e envolve em "")
+    # 2. HTML-escape o resultado para que as " não quebrem o atributo onclick
     escaped_json = json.dumps(text_content, ensure_ascii=False)
 
+    # Substitui " por " dentro do HTML e também escapa & < > para segurança
+    # O resultado final será algo como: "texto\\ncom\\nquebras"
+    # O JavaScript vai receber navigator.clipboard.writeText("...")
+    # Mas isso não funciona porque JavaScript não entende "
+    #
+    # Solução correta: usar encodeURIComponent + JSON.stringify via JS, e passar
+    # o texto decodificado. Ou mais simples: usar um dataset HTML e ler no JS.
+    #
+    # Abordagem mais robusta: codificar o texto em base64 para evitar qualquer
+    # problema de escaping.
+    import base64 as _base64
+
+    text_bytes = text_content.encode("utf-8")
+    b64_data = _base64.b64encode(text_bytes).decode("ascii")
+
     button_html = f"""
-    <button onclick="navigator.clipboard.writeText({escaped_json}).then(() => {{
-        const btn = document.querySelector('[data-copy-key=\"{key}\"]');
-        if (btn) {{
-            const originalText = btn.innerText;
-            btn.innerText = '✅ Copiado!';
-            setTimeout(() => {{ btn.innerText = originalText; }}, 2000);
-        }}
-    }}).catch(err => {{
-        console.error('Falha ao copiar: ', err);
-        alert('Não foi possível copiar. Tente manualmente.');
-    }})"
+    <button onclick="(function() {{
+        const raw = atob('{b64_data}');
+        const decoder = new TextDecoder('utf-8');
+        const bytes = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+        const text = decoder.decode(bytes);
+        navigator.clipboard.writeText(text).then(() => {{
+            const btn = document.querySelector('[data-copy-key=\"{key}\"]');
+            if (btn) {{
+                const originalText = btn.innerText;
+                btn.innerText = '✅ Copiado!';
+                setTimeout(() => {{ btn.innerText = originalText; }}, 2000);
+            }}
+        }}).catch(err => {{
+            console.error('Falha ao copiar: ', err);
+            alert('Não foi possível copiar. Tente manualmente.');
+        }});
+    }})()"
     data-copy-key="{key}"
     style="background: #f0f0f0; border: 1px solid #ddd; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-left: 8px; vertical-align: middle;">
     {label}
