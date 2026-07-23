@@ -506,7 +506,7 @@ def render_copy_button(text_content, label="📋 Copiar", key="copy_btn"):
         HTML do botão (para ser usado com st.markdown unsafe_allow_html=True).
     """
     # Escapa o texto para uso seguro em JavaScript
-    escaped_json = json.dumps(text_content)
+    escaped_json = json.dumps(text_content, ensure_ascii=False)
 
     button_html = f"""
     <button onclick="navigator.clipboard.writeText({escaped_json}).then(() => {{
