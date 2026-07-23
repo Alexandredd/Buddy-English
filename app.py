@@ -507,6 +507,8 @@ def correcao_local_basica(texto):
 
     padroes = [
         (r"\btakw\b", "take", "Correcao ortografica."),
+        (r"\bi have (\d{1,2}) yea\b", r"I am \1 years old", "Ajuste de estrutura de idade (yea -> years old)."),
+        (r"\bi have (\d{1,2}) year\b", r"I am \1 years old", "Ajuste de estrutura de idade (year -> years old)."),
         (r"\bi have (\d{1,2}) years\b", r"I am \1 years old", "Ajuste de estrutura de idade."),
         (r"\bi have (\d{1,2}) years old\b", r"I am \1 years old", "Ajuste de estrutura de idade."),
         (r"\bhow is your name\b", "what is your name", "Ajuste de pergunta natural."),

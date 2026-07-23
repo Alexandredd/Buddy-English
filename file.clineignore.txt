@@ -1,0 +1,13 @@
+# Dependências
+node_modules/
+
+# Build
+dist/
+build/
+.next/
+
+# Testes
+coverage/
+
+# Git
+.git/

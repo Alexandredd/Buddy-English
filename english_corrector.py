@@ -170,6 +170,10 @@ def _extract_json_from_text(text):
     Tenta extrair um objeto JSON de uma string que pode conter
     markdown ou texto adicional.
 
+    Usa um contador de chaves para lidar corretamente com JSON
+    aninhado (nested objects), evitando truncamento causado por
+    regex non-greedy que para no primeiro '}'.
+
     Parameters
     ----------
     text : str
@@ -180,21 +184,65 @@ def _extract_json_from_text(text):
     str
         A substring que parece ser JSON.
     """
-    # Remove blocos de código markdown se presentes
     text = text.strip()
 
-    # Tenta encontrar um bloco JSON entre ```json e ```
-    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
-    if match:
-        return match.group(1)
+    # Remove blocos markdown ```json ... ```
+    markdown_match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
+    if markdown_match:
+        inner = markdown_match.group(1).strip()
+        # Procura JSON dentro do bloco markdown
+        extracted = _extract_json_balanced(inner)
+        if extracted:
+            return extracted
 
-    # Tenta encontrar o primeiro { e o último }
+    # Procura JSON diretamente no texto todo
+    extracted = _extract_json_balanced(text)
+    if extracted:
+        return extracted
+
+    # Fallback: substring entre primeiro { e último }
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1 and end > start:
         return text[start : end + 1]
 
     return text
+
+
+def _extract_json_balanced(text):
+    """
+    Encontra o primeiro '{' e extrai até o '}' correspondente
+    que balanceia, respeitando strings e escapes.
+    Retorna a substring JSON ou string vazia se não encontrar.
+    """
+    start = text.find("{")
+    if start == -1:
+        return ""
+
+    depth = 0
+    in_string = False
+    escape = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if escape:
+            escape = False
+            continue
+        if ch == '\\' and in_string:
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+
+    return ""
 
 
 def parse_ai_response(response_text):
@@ -233,16 +281,67 @@ def _try_repair_json(json_str):
     """
     Tenta reparar JSON comuns problemas (vírgulas finais, aspas simples).
     """
-    # Substitui aspas simples por aspas duplas (cuidado com strings internas)
+    if not json_str:
+        return {}
+
     repaired = json_str
 
     # Remove vírgulas antes de } ou ]
     repaired = re.sub(r",\s*([}\]])", r"\1", repaired)
 
+    # Substitui aspas simples por aspas duplas em JSON.
+    # Estratégia segura: se não houver aspas duplas no texto,
+    # podemos simplesmente substituir ' por " (seguro porque
+    # não há conflito com aspas duplas).
+    # Se houver aspas duplas, tentamos substituir apenas as
+    # aspas simples que claramente delimitam chaves/valores.
+    if "'" in repaired and '"' not in repaired:
+        # Sem aspas duplas: troca todas as aspas simples com segurança
+        repaired = repaired.replace("'", '"')
+    elif "'" in repaired:
+        # Com aspas duplas: substitui aspas simples que estão
+        # fora de strings com aspas duplas usando parse manual
+        repaired = _replace_single_quotes_in_json(repaired)
+
     try:
         return json.loads(repaired)
     except (json.JSONDecodeError, TypeError):
         return {}
+
+
+def _replace_single_quotes_in_json(text):
+    """
+    Substitui aspas simples por aspas duplas em posições onde
+    elas claramente delimitam chaves ou valores JSON.
+    Mantém intactas aspas simples dentro de strings já delimitadas
+    por aspas duplas (como "don't", "can't", etc.).
+    """
+    result = []
+    in_double_string = False
+    in_single_string = False
+    escape = False
+
+    for ch in text:
+        if escape:
+            escape = False
+            result.append(ch)
+            continue
+        if ch == '\\':
+            escape = True
+            result.append(ch)
+            continue
+        if ch == '"' and not in_single_string:
+            in_double_string = not in_double_string
+            result.append(ch)
+            continue
+        if ch == "'" and not in_double_string:
+            in_single_string = not in_single_string
+            # Substitui aspas simples delimitadoras por duplas
+            result.append('"')
+            continue
+        result.append(ch)
+
+    return "".join(result)
 
 
 def _normalize_correction_data(data):
@@ -532,6 +631,7 @@ def correct_english_text(text, api_key, model=DEFAULT_MODEL):
 
 # Regras locais de correção (fallback quando LanguageTool e OpenAI não estão disponíveis)
 _LOCAL_CORRECTION_PATTERNS = [
+    (r"\bi have (\d{1,2}) yea\b", r"I am \1 years old", "Ajuste de estrutura de idade (yea -> years old)."),
     (r"\bi have (\d{1,2}) year\b", r"I am \1 years old", "Ajuste de estrutura de idade (year -> years old)."),
     (r"\bi have (\d{1,2}) years\b", r"I am \1 years old", "Ajuste de estrutura de idade."),
     (r"\bi have (\d{1,2}) years old\b", r"I am \1 years old", "Ajuste de estrutura de idade."),
@@ -688,7 +788,8 @@ def correct_english_text_fallback(text):
 
     Esta função é usada como fallback quando a API OpenAI não está disponível.
     Primeiro tenta usar as funções do app.py (via sys.modules), e se não conseguir,
-    usa as regras locais embutidas neste módulo.
+    usa as regras locais embutidas neste módulo. SEMPRE aplica as correções
+    locais como passo final para garantir consistência.
 
     Parameters
     ----------
@@ -704,7 +805,7 @@ def correct_english_text_fallback(text):
     ajustes = []
 
     # Tenta obter as funções do app.py via sys.modules
-    corrigir_texto, correcao_local_basica = _try_get_app_correction_functions()
+    corrigir_texto, _ = _try_get_app_correction_functions()
 
     # Correção com LanguageTool (se disponível via app.py)
     if corrigir_texto:
@@ -715,17 +816,11 @@ def correct_english_text_fallback(text):
         except Exception:
             pass
 
-    # Correção local adicional (via app.py ou via regras embutidas)
-    if correcao_local_basica:
-        try:
-            texto_corrigido, ajustes_locais = correcao_local_basica(texto_corrigido)
-            ajustes.extend(ajustes_locais)
-        except Exception:
-            pass
-    else:
-        # Usa as regras locais embutidas neste módulo
-        texto_corrigido, ajustes_locais = _apply_local_corrections(texto_corrigido)
-        ajustes.extend(ajustes_locais)
+    # SEMPRE aplica as correções locais embutidas neste módulo como passo final.
+    # Isso garante que padrões como "I have 52 year" sejam corrigidos,
+    # independentemente do que a função do app.py tenha aplicado.
+    texto_corrigido, ajustes_locais = _apply_local_corrections(texto_corrigido)
+    ajustes.extend(ajustes_locais)
 
     # Constrói explicações a partir dos ajustes
     explicacoes = []
